@@ -7,24 +7,45 @@
 
   The following variables are automatically generated and updated when changes are made to the Thing
 
-  CloudDimmedLight brightness;
+  CloudLight lightswitch;
 
   Variables which are marked as READ/WRITE in the Cloud Thing will also have functions
   which are called when their values are changed from the Dashboard.
   These functions are generated with the Thing and added at the end of this sketch.
 */
-
+#include <FastLED.h>
 #include "thingProperties.h"
 
+#define NUM_LEDS 2
+#define DATA_PIN 2
+#define REED_PIN 4
+
+CRGB leds[NUM_LEDS];
+bool is_on = lightswitch;
+
+void on(uint8_t num, uint8_t  brightness, unsigned long ms);
+void off(uint8_t num, uint8_t  brightness, unsigned long ms);
+void transition(uint8_t num, uint8_t start, uint8_t end, unsigned long ms);
+
 void setup() {
-  // Initialize serial and wait for port to open:
+  // Serial init
   Serial.begin(9600);
   // This delay gives the chance to wait for a Serial Monitor without blocking if none is found
   delay(1500); 
 
-  // Defined in thingProperties.h
-  initProperties();
+  // FastLED Init
+  FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
+  // LEDs color config
+  for(int i=0; i<NUM_LEDS; i++){
+    leds[i] = CRGB::Goldenrod;
+  }
+  FastLED.setBrightness(0);
 
+  // REED switch init
+  pinMode(REED_PIN, INPUT_PULLUP);  
+
+  // Arduino IoT Cloud init
+  initProperties();
   // Connect to Arduino IoT Cloud
   ArduinoCloud.begin(ArduinoIoTPreferredConnection);
   
@@ -42,15 +63,70 @@ void setup() {
 void loop() {
   ArduinoCloud.update();
   // Your code here 
-  
-  
+  if(digitalRead(REED_PIN) && is_on){
+    off(NUM_LEDS, 255, 100);
+    is_on = false;
+  }else if(!digitalRead(REED_PIN) && !is_on){
+    on(NUM_LEDS, 255, 350);
+    is_on = true;
+  }
+
+  FastLED.delay(100);
 }
 
 
 /*
-  Since Brightness is READ_WRITE variable, onBrightnessChange() is
+  Since Brightness is READ_WRITE variable, onLightswitchChange() is
   executed every time a new value is received from IoT Cloud.
 */
-void onBrightnessChange()  {
+void onLightswitchChange()  {
   // Add your code here to act upon Brightness change
+  if(lightswitch && !is_on){
+    on(NUM_LEDS, 255, 350);
+    is_on = true;
+  }else{
+    off(NUM_LEDS, 255, 100);
+    is_on = false;
+  }
+  
 }
+
+
+void transition(uint8_t num, uint8_t start, uint8_t end, unsigned long ms){
+  // Calculate number of steps
+  //FastLED.show() is 30us per LED + 390us
+  uint8_t steps = (ms*1000) / (30*num + 390);
+  int incr = (end-start) / steps;
+  if(incr == 0 && (end-start)>0) incr = 1;
+  if(incr == 0 && (end-start)<0) incr = -1;
+
+  uint8_t bright = start;
+  for(int i=0; i<steps; i++){
+    if(incr<0 && bright<= end){
+      bright = end;
+    } else if(incr>0 && bright>= end){
+      bright = end;
+    } else {
+      bright = bright + incr;
+    }
+    FastLED.setBrightness(bright);
+    FastLED.show();
+  }
+
+  FastLED.setBrightness(end);
+  FastLED.show();
+  return;
+}
+
+
+void on(uint8_t num, uint8_t  brightness, unsigned long ms){
+  transition(num, 0, brightness, ms);
+  return;
+}
+
+void off(uint8_t num, uint8_t  brightness, unsigned long ms){
+  transition(num, brightness, 0, ms);
+  return;
+}
+
+
