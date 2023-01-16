@@ -1,0 +1,9 @@
+{
+  "cpu": {
+    "fqbn": "esp32:esp32:esp32c3:CDCOnBoot=default,PartitionScheme=default,CPUFreq=160,FlashMode=qio,FlashFreq=80,FlashSize=4M,UploadSpeed=921600,DebugLevel=none",
+    "name": "ESP32C3 Dev Module",
+    "type": "serial"
+  },
+  "secrets": [],
+  "included_libs": []
+}
