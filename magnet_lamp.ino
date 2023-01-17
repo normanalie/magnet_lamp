@@ -63,15 +63,14 @@ void setup() {
 void loop() {
   ArduinoCloud.update();
   // Your code here 
+  // REED on/off switch
   if(digitalRead(REED_PIN) && is_on){
-    off(NUM_LEDS, 255, 100);
-    is_on = false;
+    lightswitch = LOW;
   }else if(!digitalRead(REED_PIN) && !is_on){
-    on(NUM_LEDS, 255, 350);
-    is_on = true;
+    lightswitch = HIGH;
   }
 
-  FastLED.delay(100);
+  FastLED.delay(100);  // Limit FPS
 }
 
 
