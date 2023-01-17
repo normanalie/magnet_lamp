@@ -75,11 +75,11 @@ void loop() {
 
 
 /*
-  Since Brightness is READ_WRITE variable, onLightswitchChange() is
+  Since lightswitch is READ_WRITE variable, onLightswitchChange() is
   executed every time a new value is received from IoT Cloud.
 */
 void onLightswitchChange()  {
-  // Add your code here to act upon Brightness change
+  // Add your code here to act upon lightswitch change
   if(lightswitch && !is_on){
     on(NUM_LEDS, 255, 350);
     is_on = true;
@@ -101,7 +101,7 @@ void transition(uint8_t num, uint8_t start, uint8_t end, unsigned long ms){
 
   uint8_t bright = start;
   for(int i=0; i<steps; i++){
-    if(incr<0 && bright<= end){
+    if(incr<0 && bright<= end){ 
       bright = end;
     } else if(incr>0 && bright>= end){
       bright = end;
