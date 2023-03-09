@@ -7,7 +7,7 @@ const char DEVICE_LOGIN_NAME[]  = "c3a682a2-ec91-4880-8d94-f654c46bf951";
 
 const char SSID[]               = SECRET_SSID;    // Network SSID (name)
 const char PASS[]               = SECRET_OPTIONAL_PASS;    // Network password (use for WPA, or use as key for WEP)
-const char DEVICE_KEY[]  = SECRET_DEVICE_KEY;    // Secret device password
+const char DEVICE_KEY[]         = SECRET_DEVICE_KEY;    // Secret device password
 
 void onLightswitchChange();
 

@@ -17,8 +17,8 @@
 #include "thingProperties.h"
 
 #define NUM_LEDS 2
-#define DATA_PIN 2
-#define REED_PIN 4
+#define DATA_PIN 3
+#define REED_PIN 0
 
 CRGB leds[NUM_LEDS];
 bool is_on = lightswitch;
@@ -32,7 +32,7 @@ void setup() {
   Serial.begin(9600);
   // This delay gives the chance to wait for a Serial Monitor without blocking if none is found
   delay(1500); 
-
+  Serial.println("Hello");
   // FastLED Init
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
   // LEDs color config
@@ -56,7 +56,7 @@ void setup() {
      The default is 0 (only errors).
      Maximum is 4
  */
-  setDebugMessageLevel(2);
+  setDebugMessageLevel(4);
   ArduinoCloud.printDebugInfo();
 }
 
