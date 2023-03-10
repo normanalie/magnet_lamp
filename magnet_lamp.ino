@@ -2,6 +2,7 @@
 #include <WiFiManager.h>
 #include <WiFiClientSecure.h>
 #include <Adafruit_NeoPixel.h>
+#include <ArduinoJson.h>
 
 /* MQTT Config */
 #include "mqtt_conf.h"
@@ -28,6 +29,8 @@ void wifi_setup();
 void mqtt_setup();
 void mqtt_reconnect();
 void mqtt_callback(char *topic, byte *payload, unsigned int len);
+void setBrightness(uint8_t value);
+void setColor(uint8_t r, uint8_t g, uint8_t b);
 
 void setup(){
   Serial.begin(9600);
@@ -41,7 +44,7 @@ void setup(){
 
  strip.begin();
  strip.show();
- strip.setBrightness(255);
+ strip.setBrightness(50);
 }
 
 
@@ -99,16 +102,44 @@ void mqtt_reconnect(){
 }
 
 void mqtt_callback(char *topic, byte *payload, unsigned int len){
+  StaticJsonDocument<200> data;
   Serial.print("[MQTT] - Message on [");
   Serial.print(topic);
   Serial.println("]");
-  Serial.println((char)payload[0]);
-  if((char)payload[0] == '1'){
-    strip.setPixelColor(0, 255, 200, 70);
-    strip.setPixelColor(1, 255, 200, 70);
-  }else{
-    strip.setPixelColor(0, 0, 0, 0);
-    strip.setPixelColor(1, 0, 0, 0);
+  //Serial.println((char*)payload);
+  DeserializationError err = deserializeJson(data, (char *)payload);
+  if(err){
+    Serial.println("Deserialization error");
+    Serial.println(err.f_str());
+  } else {
+    uint8_t r=(uint8_t)data["r"];
+    uint8_t g=(uint8_t)data["g"];
+    uint8_t b=(uint8_t)data["b"];
+    uint8_t br=data["brightness"];
+    setBrightness(br);
+    setColor(r,g,b);    
   }
   return;
+}
+
+
+void setBrightness(uint8_t value){
+  strip.setBrightness(value);
+  strip.show();
+  char json[30] = "";
+  sprintf(json, "{\"brightness\":%d}\0", value);
+  mqtt_client.publish("pcboflight/test", json);
+}
+
+void setColor(uint8_t r, uint8_t g, uint8_t b){
+  Serial.println(r);
+  Serial.println(g);
+  Serial.println(b);
+  for(int c=0; c<NUM_LEDS; c++){
+    strip.setPixelColor(c, r, g, b);
+  }
+  strip.show();
+  char json[200] = "";
+  sprintf(json, "{\"r\":%d, \"g\":%d, \"b\":%d}\0", r, g, b);
+  mqtt_client.publish("pcboflight/test", json);
 }
