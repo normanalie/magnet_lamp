@@ -41,7 +41,7 @@ void setup(){
 
  strip.begin();
  strip.show();
- strip.setBrightness(125);
+ strip.setBrightness(255);
 }
 
 
@@ -104,8 +104,8 @@ void mqtt_callback(char *topic, byte *payload, unsigned int len){
   Serial.println("]");
   Serial.println((char)payload[0]);
   if((char)payload[0] == '1'){
-    strip.setPixelColor(0, 255, 255, 255);
-    strip.setPixelColor(1, 255, 255, 255);
+    strip.setPixelColor(0, 255, 200, 70);
+    strip.setPixelColor(1, 255, 200, 70);
   }else{
     strip.setPixelColor(0, 0, 0, 0);
     strip.setPixelColor(1, 0, 0, 0);
