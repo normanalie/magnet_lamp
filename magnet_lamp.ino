@@ -15,6 +15,7 @@
 
 #define DATA_PIN 3
 #define NUM_LEDS 4
+#define REED_PIN 1
 
 Adafruit_NeoPixel strip(NUM_LEDS, DATA_PIN, NEO_GRB+NEO_KHZ800);
 
@@ -30,7 +31,9 @@ String mqtt_client_id = "pcboflight_";
 #define B 2
 #define BRIGHTNESS 3
 #define UPDATED 4
-uint8_t states[5] = {0};
+#define IS_ON 5
+#define SAVED_BRIGHTNESS 6
+uint8_t states[7] = {0};
 
 void wifi_setup();
 void mqtt_setup();
@@ -49,6 +52,9 @@ void setup(){
   wifi_setup();
   mqtt_setup();
 
+  pinMode(REED_PIN, INPUT_PULLUP);
+  states[IS_ON] = 1;
+
  strip.begin();
  strip.show();
  strip.setBrightness(50);
@@ -66,17 +72,44 @@ void loop(){
     t = millis();
   }
   if(states[UPDATED]){
+    static bool prec_on = true;
+    if(states[IS_ON] != prec_on){
+      if(states[IS_ON]){
+        states[BRIGHTNESS] = states[SAVED_BRIGHTNESS]; 
+        prec_on = true;
+      }else{
+        states[SAVED_BRIGHTNESS] = states[BRIGHTNESS];
+        states[BRIGHTNESS] = 0;
+        prec_on = false;
+      }
+    }
     setBrightness(states[BRIGHTNESS]);
     setColor(states[R], states[G], states[B]);
     char json[200] = "";
     sprintf(json, "{\"r\":%d, \"g\":%d, \"b\":%d, \"brightness\":%d}\0", states[R], states[G], states[B], states[BRIGHTNESS]);
     mqtt_client.publish("pcboflight/test", json);
+    Serial.println("Send");
     states[UPDATED] = 0;
   }
-    if(mqtt_client.connected()){
-      mqtt_client.loop();  // In the main loop to prevent timeout disconnect
+  if(mqtt_client.connected()){
+    mqtt_client.loop();  // In the main loop to prevent timeout disconnect
+  }
+
+  // REED Switch
+  static bool prec_reed = LOW;
+  if(digitalRead(REED_PIN) != prec_reed){  // Inverted (pullup) and invertedby design (magnet <-> off)
+    if(digitalRead(REED_PIN)){
+      states[IS_ON] = true;
+      states[UPDATED] = true;
+      prec_reed = HIGH;
+    } else {
+      states[IS_ON] = false;
+      states[UPDATED] = true;
+      prec_reed = LOW;
     }
-    wm.process(); 
+  }
+
+  wm.process(); 
 }
 
 
