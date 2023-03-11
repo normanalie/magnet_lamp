@@ -14,7 +14,7 @@
 */
 
 #define DATA_PIN 3
-#define NUM_LEDS 2
+#define NUM_LEDS 4
 
 Adafruit_NeoPixel strip(NUM_LEDS, DATA_PIN, NEO_GRB+NEO_KHZ800);
 
@@ -24,6 +24,13 @@ WiFiManager wm;
 PubSubClient mqtt_client(espClient);
 String mqtt_client_id = "pcboflight_";
 
+
+#define R 0
+#define G 1
+#define B 2
+#define BRIGHTNESS 3
+#define UPDATED 4
+uint8_t states[5] = {0};
 
 void wifi_setup();
 void mqtt_setup();
@@ -52,14 +59,24 @@ void loop(){
   static unsigned long t = millis();
   if(millis()-t > 100){
     strip.show();
-    t = millis();
-  }
-    wm.process(); 
+
     if(!mqtt_client.connected()){
       mqtt_reconnect();
-    } else {
-      mqtt_client.loop();
     }
+    t = millis();
+  }
+  if(states[UPDATED]){
+    setBrightness(states[BRIGHTNESS]);
+    setColor(states[R], states[G], states[B]);
+    char json[200] = "";
+    sprintf(json, "{\"r\":%d, \"g\":%d, \"b\":%d, \"brightness\":%d}\0", states[R], states[G], states[B], states[BRIGHTNESS]);
+    mqtt_client.publish("pcboflight/test", json);
+    states[UPDATED] = 0;
+  }
+    if(mqtt_client.connected()){
+      mqtt_client.loop();  // In the main loop to prevent timeout disconnect
+    }
+    wm.process(); 
 }
 
 
@@ -112,12 +129,11 @@ void mqtt_callback(char *topic, byte *payload, unsigned int len){
     Serial.println("Deserialization error");
     Serial.println(err.f_str());
   } else {
-    uint8_t r=(uint8_t)data["r"];
-    uint8_t g=(uint8_t)data["g"];
-    uint8_t b=(uint8_t)data["b"];
-    uint8_t br=data["brightness"];
-    setBrightness(br);
-    setColor(r,g,b);    
+    if(data.containsKey("r")) states[R] = (uint8_t)data["r"];
+    if(data.containsKey("g")) states[G] = (uint8_t)data["g"];
+    if(data.containsKey("b")) states[B] = (uint8_t)data["b"];
+    if(data.containsKey("brightness")) states[BRIGHTNESS] = (uint8_t)data["brightness"];
+    states[UPDATED] = 1;
   }
   return;
 }
@@ -126,20 +142,12 @@ void mqtt_callback(char *topic, byte *payload, unsigned int len){
 void setBrightness(uint8_t value){
   strip.setBrightness(value);
   strip.show();
-  char json[30] = "";
-  sprintf(json, "{\"brightness\":%d}\0", value);
-  mqtt_client.publish("pcboflight/test", json);
 }
 
 void setColor(uint8_t r, uint8_t g, uint8_t b){
-  Serial.println(r);
-  Serial.println(g);
-  Serial.println(b);
   for(int c=0; c<NUM_LEDS; c++){
     strip.setPixelColor(c, r, g, b);
   }
   strip.show();
-  char json[200] = "";
-  sprintf(json, "{\"r\":%d, \"g\":%d, \"b\":%d}\0", r, g, b);
-  mqtt_client.publish("pcboflight/test", json);
+
 }
