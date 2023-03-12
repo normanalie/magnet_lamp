@@ -15,7 +15,7 @@
 
 #define DATA_PIN 3
 #define NUM_LEDS 4
-#define REED_PIN 1
+#define REED_PIN 2
 
 Adafruit_NeoPixel strip(NUM_LEDS, DATA_PIN, NEO_GRB+NEO_KHZ800);
 
@@ -86,7 +86,7 @@ void loop(){
     setBrightness(states[BRIGHTNESS]);
     setColor(states[R], states[G], states[B]);
     char json[200] = "";
-    sprintf(json, "{\"r\":%d, \"g\":%d, \"b\":%d, \"brightness\":%d}\0", states[R], states[G], states[B], states[BRIGHTNESS]);
+    sprintf(json, "{\"r\":%d, \"g\":%d, \"b\":%d, \"brightness\":%d, \"is_on\": %d}\0", states[R], states[G], states[B], states[BRIGHTNESS], states[IS_ON]);
     mqtt_client.publish("pcboflight/test", json);
     Serial.println("Send");
     states[UPDATED] = 0;
@@ -166,6 +166,7 @@ void mqtt_callback(char *topic, byte *payload, unsigned int len){
     if(data.containsKey("g")) states[G] = (uint8_t)data["g"];
     if(data.containsKey("b")) states[B] = (uint8_t)data["b"];
     if(data.containsKey("brightness")) states[BRIGHTNESS] = (uint8_t)data["brightness"];
+    if(data.containsKey("is_on")) states[IS_ON] = (uint8_t)data["is_on"];
     states[UPDATED] = 1;
   }
   return;
