@@ -62,6 +62,8 @@ void setup(){
 
 
 void loop(){
+
+  // EVERY 100ms
   static unsigned long t = millis();
   if(millis()-t > 100){
     strip.show();
@@ -71,6 +73,8 @@ void loop(){
     }
     t = millis();
   }
+
+  // Light update
   if(states[UPDATED]){
     if(states[IS_ON]){
       setBrightness(states[BRIGHTNESS]);
@@ -88,9 +92,9 @@ void loop(){
     mqtt_client.loop();  // In the main loop to prevent timeout disconnect
   }
 
+  // General updates
   reed_update();
-
-  wm.process(); 
+  wm.process();  // WiFi manager update
 }
 
 
@@ -166,7 +170,6 @@ void setColor(uint8_t r, uint8_t g, uint8_t b){
   }
   strip.show();
   return; 
-
 }
 
 void reed_update(){
