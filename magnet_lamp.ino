@@ -32,8 +32,7 @@ String mqtt_client_id = "pcboflight_";
 #define BRIGHTNESS 3
 #define UPDATED 4
 #define IS_ON 5
-#define SAVED_BRIGHTNESS 6
-uint8_t states[7] = {0};
+uint8_t states[6] = {0};
 
 void wifi_setup();
 void mqtt_setup();
@@ -41,6 +40,7 @@ void mqtt_reconnect();
 void mqtt_callback(char *topic, byte *payload, unsigned int len);
 void setBrightness(uint8_t value);
 void setColor(uint8_t r, uint8_t g, uint8_t b);
+void reed_update();
 
 void setup(){
   Serial.begin(9600);
@@ -53,7 +53,7 @@ void setup(){
   mqtt_setup();
 
   pinMode(REED_PIN, INPUT_PULLUP);
-  states[IS_ON] = 1;
+  states[IS_ON] = true;
 
  strip.begin();
  strip.show();
@@ -72,18 +72,11 @@ void loop(){
     t = millis();
   }
   if(states[UPDATED]){
-    static bool prec_on = true;
-    if(states[IS_ON] != prec_on){
-      if(states[IS_ON]){
-        states[BRIGHTNESS] = states[SAVED_BRIGHTNESS]; 
-        prec_on = true;
-      }else{
-        states[SAVED_BRIGHTNESS] = states[BRIGHTNESS];
-        states[BRIGHTNESS] = 0;
-        prec_on = false;
-      }
+    if(states[IS_ON]){
+      setBrightness(states[BRIGHTNESS]);
+    }else{
+      setBrightness(0);
     }
-    setBrightness(states[BRIGHTNESS]);
     setColor(states[R], states[G], states[B]);
     char json[200] = "";
     sprintf(json, "{\"r\":%d, \"g\":%d, \"b\":%d, \"brightness\":%d, \"is_on\": %d}\0", states[R], states[G], states[B], states[BRIGHTNESS], states[IS_ON]);
@@ -95,19 +88,7 @@ void loop(){
     mqtt_client.loop();  // In the main loop to prevent timeout disconnect
   }
 
-  // REED Switch
-  static bool prec_reed = LOW;
-  if(digitalRead(REED_PIN) != prec_reed){  // Inverted (pullup) and invertedby design (magnet <-> off)
-    if(digitalRead(REED_PIN)){
-      states[IS_ON] = true;
-      states[UPDATED] = true;
-      prec_reed = HIGH;
-    } else {
-      states[IS_ON] = false;
-      states[UPDATED] = true;
-      prec_reed = LOW;
-    }
-  }
+  reed_update();
 
   wm.process(); 
 }
@@ -176,6 +157,7 @@ void mqtt_callback(char *topic, byte *payload, unsigned int len){
 void setBrightness(uint8_t value){
   strip.setBrightness(value);
   strip.show();
+  return;
 }
 
 void setColor(uint8_t r, uint8_t g, uint8_t b){
@@ -183,5 +165,22 @@ void setColor(uint8_t r, uint8_t g, uint8_t b){
     strip.setPixelColor(c, r, g, b);
   }
   strip.show();
+  return; 
 
+}
+
+void reed_update(){
+  static bool prec_reed = LOW;
+  if(digitalRead(REED_PIN) != prec_reed){  // Inverted (pullup) and invertedby design (magnet <-> off)
+    if(digitalRead(REED_PIN)){
+      states[IS_ON] = true;
+      states[UPDATED] = true;
+      prec_reed = HIGH;
+    } else {
+      states[IS_ON] = false;
+      states[UPDATED] = true;
+      prec_reed = LOW;
+    }
+  }
+  return;
 }
