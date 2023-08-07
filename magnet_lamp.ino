@@ -77,6 +77,9 @@ void loop(){
   // Light update
   if(states[UPDATED]){
     if(states[IS_ON]){
+      if(states[BRIGHTNESS] <= 0){
+        states[BRIGHTNESS] = 127;
+      }
       setBrightness(states[BRIGHTNESS]);
     }else{
       setBrightness(0);
